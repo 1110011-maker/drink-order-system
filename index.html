@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>網路管理餐飲飲料系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 SheetJS 用於匯出 Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f9fafb;
+        }
+        .drink-card:hover {
+            transform: translateY(-4px);
+            transition: all 0.3s ease;
+        }
+        /* 自定義捲軸 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+        
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- 頂部導覽列 -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-2 cursor-pointer" onclick="switchView('user')">
+                <div class="w-10 h-10 bg-teal-500 rounded-full flex items-center justify-center text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.344l-.707-.707M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </div>
+                <h1 class="text-xl font-bold text-teal-600 hidden sm:block">網路管理餐飲飲料系統</h1>
+            </div>
+
+            <div class="flex items-center space-x-6">
+                <!-- 視圖切換按鈕 -->
+                <nav class="flex bg-gray-100 p-1 rounded-lg">
+                    <button id="view-btn-user" onclick="switchView('user')" class="px-4 py-1.5 rounded-md text-sm font-bold transition bg-white text-teal-600 shadow-sm">前台點餐</button>
+                    <button id="view-btn-admin" onclick="switchView('admin')" class="px-4 py-1.5 rounded-md text-sm font-bold transition text-gray-500 hover:text-teal-600">管理後台</button>
+                </nav>
+
+                <div class="relative cursor-pointer" onclick="toggleCartMobile()">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
+                    <span id="cart-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 前台畫面 -->
+    <div id="view-user" class="fade-in">
+        <main class="max-w-7xl mx-auto px-4 py-8 flex flex-col lg:flex-row gap-8">
+            <!-- 左側菜單區 -->
+            <div class="flex-1">
+                <div class="flex space-x-4 mb-8 overflow-x-auto pb-2">
+                    <button onclick="filterMenu('all')" class="category-btn px-6 py-2 rounded-full bg-teal-500 text-white shadow-md">全部</button>
+                    <button onclick="filterMenu('純茶')" class="category-btn px-6 py-2 rounded-full bg-white text-gray-600 hover:bg-teal-50 shadow-sm transition">原粹純茶</button>
+                    <button onclick="filterMenu('拿鐵')" class="category-btn px-6 py-2 rounded-full bg-white text-gray-600 hover:bg-teal-50 shadow-sm transition">鮮奶拿鐵</button>
+                    <button onclick="filterMenu('果茶')" class="category-btn px-6 py-2 rounded-full bg-white text-gray-600 hover:bg-teal-50 shadow-sm transition">鮮果特調</button>
+                </div>
+                <div id="drink-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"></div>
+            </div>
+
+            <!-- 右側購物車 -->
+            <aside id="cart-sidebar" class="hidden lg:block w-96 bg-white rounded-2xl shadow-lg h-fit sticky top-24 overflow-hidden border border-gray-100">
+                <div class="p-6 border-b border-gray-100">
+                    <h2 class="text-xl font-bold flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        您的訂單
+                    </h2>
+                </div>
+                <div id="cart-items" class="p-6 max-h-[50vh] overflow-y-auto space-y-4"></div>
+                <div class="p-6 bg-gray-50 border-t border-gray-100">
+                    <div class="flex justify-between mb-4 pt-4">
+                        <span class="text-lg font-bold">總計</span>
+                        <span id="total" class="text-2xl font-bold text-teal-600">NT$ 0</span>
+                    </div>
+                    <button onclick="checkout()" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-4 rounded-xl shadow-lg transition duration-200 transform active:scale-95">
+                        確認訂單
+                    </button>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <!-- 後台管理系統 -->
+    <div id="view-admin" class="hidden fade-in">
+        <main class="max-w-7xl mx-auto px-4 py-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <!-- 統計卡片 -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <p class="text-gray-500 text-sm mb-1">今日營收</p>
+                    <h3 id="admin-total-sales" class="text-3xl font-bold text-teal-600">NT$ 0</h3>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <p class="text-gray-500 text-sm mb-1">訂單總數</p>
+                    <h3 id="admin-order-count" class="text-3xl font-bold text-gray-800">0</h3>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <p class="text-gray-500 text-sm mb-1">熱門飲品</p>
+                    <h3 id="admin-top-drink" class="text-3xl font-bold text-amber-500">-</h3>
+                </div>
+            </div>
+
+            <div class="flex flex-col xl:flex-row gap-8">
+                <!-- 訂單列表 -->
+                <div class="flex-[2] bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0">
+                        <h2 class="text-xl font-bold">訂單列表</h2>
+                        <div class="flex space-x-4">
+                            <button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center shadow-sm transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                匯出 Excel
+                            </button>
+                            <button onclick="clearAllOrders()" class="text-sm text-red-500 hover:underline">清除紀錄</button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+                                <tr>
+                                    <th class="px-6 py-4">單號</th>
+                                    <th class="px-6 py-4">時間</th>
+                                    <th class="px-6 py-4">品項內容</th>
+                                    <th class="px-6 py-4">總額</th>
+                                    <th class="px-6 py-4">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-order-list" class="divide-y divide-gray-100">
+                                <!-- 訂單列表內容 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 菜單管理 -->
+                <div class="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden h-fit">
+                    <div class="p-6 border-b border-gray-100">
+                        <h2 class="text-xl font-bold">菜單管理</h2>
+                    </div>
+                    <div class="p-6">
+                        <div class="space-y-4 mb-8" id="admin-menu-list">
+                            <!-- 菜單管理內容 -->
+                        </div>
+                        <div class="p-4 bg-teal-50 rounded-xl border border-teal-100 mb-6">
+                            <h4 class="font-bold text-teal-800 mb-3">新增品項</h4>
+                            <div class="space-y-3">
+                                <input id="new-name" type="text" placeholder="飲品名稱" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <div class="flex space-x-2">
+                                    <input id="new-price" type="number" placeholder="金額" class="w-2/3 px-3 py-2 border rounded-lg text-sm">
+                                    <select id="new-cat" class="w-1/3 px-3 py-2 border rounded-lg text-sm bg-white">
+                                        <option value="純茶">純茶</option>
+                                        <option value="拿鐵">拿鐵</option>
+                                        <option value="果茶">果茶</option>
+                                    </select>
+                                </div>
+                                <button onclick="addNewDrink()" class="w-full bg-teal-500 text-white py-2 rounded-lg font-bold hover:bg-teal-600 transition">新增到菜單</button>
+                            </div>
+                        </div>
+
+                        <!-- CSV 批次匯入 -->
+                        <div class="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                            <h4 class="font-bold text-blue-800 mb-3 flex items-center justify-between">
+                                批次匯入 (CSV)
+                                <button onclick="downloadCurrentMenuCSV()" class="text-xs px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition">下載現有所有品項</button>
+                            </h4>
+                            <p class="text-sm text-blue-600 mb-3">支援欄位：ID、名稱、價格、分類、圖示、顏色（分類必須為：純茶、拿鐵、果茶）</p>
+                            <div class="flex space-x-3">
+                                <button onclick="document.getElementById('csv-import').click()" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-bold transition">
+                                    選擇 CSV 檔案匯入
+                                </button>
+                            </div>
+                            <input type="file" id="csv-import" accept=".csv" class="hidden" onchange="handleCSVImport(this.files[0])">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 訂購彈窗 (Modal) -->
+    <div id="order-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div class="h-32 bg-teal-500 flex items-center justify-center text-white">
+                <h3 id="modal-title" class="text-2xl font-bold">飲料名稱</h3>
+            </div>
+            <div class="p-6">
+                <div class="mb-6">
+                    <label class="block text-sm font-bold text-gray-700 mb-3 uppercase tracking-wider">甜度</label>
+                    <div id="sugar-options" class="grid grid-cols-3 gap-2"></div>
+                </div>
+                <div class="mb-8">
+                    <label class="block text-sm font-bold text-gray-700 mb-3 uppercase tracking-wider">冰塊</label>
+                    <div id="ice-options" class="grid grid-cols-3 gap-2"></div>
+                </div>
+                <div class="flex space-x-4">
+                    <button onclick="closeModal()" class="flex-1 px-6 py-3 border border-gray-300 rounded-xl font-bold text-gray-500 hover:bg-gray-50">取消</button>
+                    <button onclick="addToCartConfirm()" class="flex-[2] px-6 py-3 bg-teal-500 text-white rounded-xl font-bold shadow-md hover:bg-teal-600 transition">加入 NT$ <span id="modal-price">0</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CSV 匯入預覽彈窗 -->
+    <div id="csv-preview-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl w-full max-w-4xl max-h-[80vh] overflow-hidden shadow-2xl flex flex-col">
+            <div class="h-16 bg-blue-500 flex items-center justify-between px-6 text-white">
+                <h3 class="text-xl font-bold">CSV 匯入預覽</h3>
+                <button onclick="closeCSVPreviewModal()" class="text-white hover:text-gray-200 text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <!-- 統計摘要 -->
+                <div id="csv-preview-summary" class="mb-6 p-4 bg-gray-50 rounded-xl"></div>
+
+                <!-- 有效資料預覽 -->
+                <div id="csv-preview-valid" class="mb-6">
+                    <h4 class="font-bold text-green-700 mb-3 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                        將匯入的品項 (<span id="valid-count">0</span> 筆)
+                    </h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-green-50 text-green-700 text-xs uppercase tracking-wider">
+                                <tr>
+                                    <th class="px-4 py-2">名稱</th>
+                                    <th class="px-4 py-2">價格</th>
+                                    <th class="px-4 py-2">分類</th>
+                                    <th class="px-4 py-2">圖示</th>
+                                    <th class="px-4 py-2">顏色</th>
+                                    <th class="px-4 py-2">狀態</th>
+                                </tr>
+                            </thead>
+                            <tbody id="csv-valid-rows" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 無效資料錯誤 -->
+                <div id="csv-preview-invalid" class="hidden">
+                    <h4 class="font-bold text-red-700 mb-3 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        將跳過的品項 (<span id="invalid-count">0</span> 筆)
+                    </h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-red-50 text-red-700 text-xs uppercase tracking-wider">
+                                <tr>
+                                    <th class="px-4 py-2">原始資料</th>
+                                    <th class="px-4 py-2">錯誤原因</th>
+                                </tr>
+                            </thead>
+                            <tbody id="csv-invalid-rows" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6 bg-gray-50 border-t border-gray-100 flex justify-end space-x-4">
+                <button onclick="closeCSVPreviewModal()" class="px-6 py-3 border border-gray-300 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition">取消</button>
+                <button onclick="confirmCSVImport()" class="px-6 py-3 bg-blue-500 text-white rounded-xl font-bold shadow-md hover:bg-blue-600 transition" id="csv-confirm-btn">確認匯入</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-xl opacity-0 transition-opacity duration-300 z-[200] pointer-events-none"></div>
+
+    <script>
+        // 核心資料
+        let drinks = [
+            { id: 1, name: "經典茉莉綠茶", price: 35, category: "純茶", color: "bg-green-100", emoji: "🍵" },
+            { id: 2, name: "極品韻香紅茶", price: 35, category: "純茶", color: "bg-red-100", emoji: "☕" },
+            { id: 3, name: "四季春青茶", price: 40, category: "純茶", color: "bg-emerald-100", emoji: "🌿" },
+            { id: 4, name: "珍珠厚奶茶", price: 65, category: "拿鐵", color: "bg-amber-100", emoji: "🧋" },
+            { id: 5, name: "觀音拿鐵", price: 60, category: "拿鐵", color: "bg-stone-100", emoji: "🥛" },
+            { id: 7, name: "爆檸翠玉青", price: 55, category: "果茶", color: "bg-yellow-100", emoji: "🍋" }
+        ];
+
+        let cart = [];
+        let orders = [];
+        let currentSelectingDrink = null;
+        let selectedSugar = "半糖";
+        let selectedIce = "少冰";
+
+        const sugarLevels = ["正常糖", "少糖", "半糖", "微糖", "二分糖", "無糖"];
+        const iceLevels = ["正常冰", "少冰", "微冰", "去冰", "完全去冰", "溫熱"];
+
+        // 分類對應的預設樣式
+        const categoryStyles = {
+            '純茶': { color: 'bg-green-100', emoji: '🍵' },
+            '拿鐵': { color: 'bg-amber-100', emoji: '🧋' },
+            '果茶': { color: 'bg-yellow-100', emoji: '🍋' }
+        };
+
+        // CSV 匯入狀態
+        let csvImportData = { valid: [], invalid: [] };
+
+        function init() {
+            renderMenu(drinks);
+            renderAdminView();
+            renderOptionButtons();
+        }
+
+        // 視圖切換
+        function switchView(view) {
+            const userView = document.getElementById('view-user');
+            const adminView = document.getElementById('view-admin');
+            const btnUser = document.getElementById('view-btn-user');
+            const btnAdmin = document.getElementById('view-btn-admin');
+
+            if (view === 'user') {
+                userView.classList.remove('hidden');
+                adminView.classList.add('hidden');
+                btnUser.className = "px-4 py-1.5 rounded-md text-sm font-bold transition bg-white text-teal-600 shadow-sm";
+                btnAdmin.className = "px-4 py-1.5 rounded-md text-sm font-bold transition text-gray-500 hover:text-teal-600";
+            } else {
+                userView.classList.add('hidden');
+                adminView.classList.remove('hidden');
+                btnAdmin.className = "px-4 py-1.5 rounded-md text-sm font-bold transition bg-white text-teal-600 shadow-sm";
+                btnUser.className = "px-4 py-1.5 rounded-md text-sm font-bold transition text-gray-500 hover:text-teal-600";
+                renderAdminView();
+            }
+        }
+
+        // 前台：渲染菜單
+        function renderMenu(items) {
+            const grid = document.getElementById('drink-grid');
+            grid.innerHTML = items.map(drink => `
+                <div class="drink-card bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex flex-col justify-between">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="w-14 h-14 ${drink.color || 'bg-gray-100'} rounded-2xl flex items-center justify-center text-3xl">
+                            ${drink.emoji || '🥤'}
+                        </div>
+                        <span class="bg-teal-50 text-teal-600 text-xs font-bold px-2 py-1 rounded-md">${drink.category}</span>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800 mb-1">${drink.name}</h3>
+                        <p class="text-gray-400 text-sm mb-4">嚴選在地好茶。</p>
+                    </div>
+                    <div class="flex items-center justify-between mt-2">
+                        <span class="text-xl font-bold text-teal-600">NT$ ${drink.price}</span>
+                        <button onclick="openOrderModal(${drink.id})" class="bg-gray-100 hover:bg-teal-500 hover:text-white text-gray-600 w-10 h-10 rounded-full flex items-center justify-center transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterMenu(category) {
+            const filtered = category === 'all' ? drinks : drinks.filter(d => d.category === category);
+            renderMenu(filtered);
+            const btns = document.querySelectorAll('.category-btn');
+            btns.forEach(btn => {
+                if (btn.innerText === category || (category === 'all' && btn.innerText === '全部')) {
+                    btn.className = "category-btn px-6 py-2 rounded-full bg-teal-500 text-white shadow-md";
+                } else {
+                    btn.className = "category-btn px-6 py-2 rounded-full bg-white text-gray-600 hover:bg-teal-50 shadow-sm transition";
+                }
+            });
+        }
+
+        // 前台：客製化 Modal
+        function renderOptionButtons() {
+            document.getElementById('sugar-options').innerHTML = sugarLevels.map(s => `
+                <button class="opt-btn-sugar border rounded-lg py-2 hover:bg-teal-50" data-val="${s}" onclick="setSugar('${s}')">${s}</button>
+            `).join('');
+            document.getElementById('ice-options').innerHTML = iceLevels.map(i => `
+                <button class="opt-btn-ice border rounded-lg py-2 hover:bg-teal-50" data-val="${i}" onclick="setIce('${i}')">${i}</button>
+            `).join('');
+        }
+
+        function openOrderModal(id) {
+            currentSelectingDrink = drinks.find(d => d.id === id);
+            document.getElementById('modal-title').innerText = currentSelectingDrink.name;
+            document.getElementById('modal-price').innerText = currentSelectingDrink.price;
+            document.getElementById('order-modal').classList.replace('hidden', 'flex');
+            setSugar("半糖");
+            setIce("少冰");
+        }
+
+        function closeModal() {
+            document.getElementById('order-modal').classList.replace('flex', 'hidden');
+        }
+
+        function setSugar(val) {
+            selectedSugar = val;
+            updateBtnUI('.opt-btn-sugar', val);
+        }
+
+        function setIce(val) {
+            selectedIce = val;
+            updateBtnUI('.opt-btn-ice', val);
+        }
+
+        function updateBtnUI(selector, val) {
+            document.querySelectorAll(selector).forEach(btn => {
+                if (btn.getAttribute('data-val') === val) {
+                    btn.className = `${selector.substring(1)} border border-teal-500 bg-teal-50 text-teal-700 font-medium rounded-lg py-2`;
+                } else {
+                    btn.className = `${selector.substring(1)} border border-gray-200 text-gray-500 rounded-lg py-2 hover:bg-gray-50`;
+                }
+            });
+        }
+
+        // 購物車邏輯
+        function addToCartConfirm() {
+            cart.push({ ...currentSelectingDrink, sugar: selectedSugar, ice: selectedIce, cartId: Date.now() });
+            updateCartUI();
+            closeModal();
+            showToast(`已加入：${currentSelectingDrink.name}`);
+        }
+
+        function updateCartUI() {
+            const container = document.getElementById('cart-items');
+            document.getElementById('cart-count').innerText = cart.length;
+            
+            if (cart.length === 0) {
+                container.innerHTML = `<div class="text-center py-10 text-gray-400"><p>購物車空空的</p></div>`;
+                document.getElementById('total').innerText = "NT$ 0";
+                return;
+            }
+
+            container.innerHTML = cart.map(item => `
+                <div class="flex justify-between items-center bg-gray-50 p-3 rounded-xl">
+                    <div>
+                        <h4 class="font-bold text-gray-800 text-sm">${item.name}</h4>
+                        <p class="text-xs text-gray-500">${item.sugar} / ${item.ice}</p>
+                        <p class="text-teal-600 font-bold text-xs">NT$ ${item.price}</p>
+                    </div>
+                    <button onclick="removeFromCart(${item.cartId})" class="text-gray-300 hover:text-red-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                </div>
+            `).join('');
+
+            const total = cart.reduce((s, i) => s + i.price, 0);
+            document.getElementById('total').innerText = `NT$ ${total}`;
+        }
+
+        function removeFromCart(id) {
+            cart = cart.filter(i => i.cartId !== id);
+            updateCartUI();
+        }
+
+        function checkout() {
+            if (cart.length === 0) return showToast("購物車是空的喔！");
+            
+            const total = cart.reduce((s, i) => s + i.price, 0);
+            const order = {
+                id: Math.floor(1000 + Math.random() * 9000),
+                time: new Date().toLocaleString('zh-TW'),
+                items: [...cart],
+                total: total
+            };
+            
+            orders.unshift(order); // 最新的排前面
+            cart = [];
+            updateCartUI();
+            showToast("下單成功！可前往後台查看。");
+            
+            if (window.innerWidth < 1024) toggleCartMobile();
+        }
+
+        // 後台：匯出 Excel
+        function exportToExcel() {
+            if (orders.length === 0) {
+                showToast("目前沒有訂單可以匯出！");
+                return;
+            }
+
+            // 將資料扁平化，適合 Excel 表格格式
+            const excelData = [];
+            orders.forEach(order => {
+                order.items.forEach((item, index) => {
+                    excelData.push({
+                        "訂單單號": order.id,
+                        "下單時間": order.time,
+                        "飲品名稱": item.name,
+                        "甜度": item.sugar,
+                        "冰塊": item.ice,
+                        "單價": item.price,
+                        "訂單總額": index === 0 ? order.total : "" // 只在第一行顯示總額比較好讀
+                    });
+                });
+            });
+
+            // 使用 SheetJS 建立活頁簿
+            const ws = XLSX.utils.json_to_sheet(excelData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "訂單紀錄");
+
+            // 觸發下載
+            const dateStr = new Date().toISOString().split('T')[0];
+            XLSX.writeFile(wb, `網路管理餐飲飲料系統_訂單紀錄_${dateStr}.xlsx`);
+            
+            showToast("Excel 檔案已匯出！");
+        }
+
+        // 後台：管理功能
+        function renderAdminView() {
+            // 統計
+            const totalSales = orders.reduce((s, o) => s + o.total, 0);
+            document.getElementById('admin-total-sales').innerText = `NT$ ${totalSales}`;
+            document.getElementById('admin-order-count').innerText = orders.length;
+            
+            // 熱門飲品計算
+            const counts = {};
+            orders.forEach(o => o.items.forEach(i => counts[i.name] = (counts[i.name] || 0) + 1));
+            const top = Object.keys(counts).sort((a,b) => counts[b] - counts[a])[0];
+            document.getElementById('admin-top-drink').innerText = top || "-";
+
+            // 訂單列表
+            const list = document.getElementById('admin-order-list');
+            if (orders.length === 0) {
+                list.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center text-gray-400 italic">目前尚無訂單紀錄</td></tr>`;
+            } else {
+                list.innerHTML = orders.map(o => `
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-6 py-4 font-mono font-bold text-gray-500">#${o.id}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">${o.time}</td>
+                        <td class="px-6 py-4 text-sm">
+                            ${o.items.map(i => `<div class="mb-1">${i.name} (${i.sugar}/${i.ice})</div>`).join('')}
+                        </td>
+                        <td class="px-6 py-4 font-bold text-teal-600">NT$ ${o.total}</td>
+                        <td class="px-6 py-4">
+                            <button onclick="deleteOrder(${o.id})" class="text-red-400 hover:text-red-600 text-xs font-bold underline">刪除</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            // 菜單列表
+            const menuList = document.getElementById('admin-menu-list');
+            menuList.innerHTML = drinks.map(d => `
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div>
+                        <span class="font-bold text-sm">${d.name}</span>
+                        <span class="text-xs text-gray-400 ml-2">NT$ ${d.price}</span>
+                    </div>
+                    <button onclick="deleteDrink(${d.id})" class="text-gray-300 hover:text-red-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function deleteOrder(id) {
+            orders = orders.filter(o => o.id !== id);
+            renderAdminView();
+        }
+
+        function clearAllOrders() {
+            if (confirm("確定要清除所有訂單紀錄嗎？")) {
+                orders = [];
+                renderAdminView();
+            }
+        }
+
+        function deleteDrink(id) {
+            drinks = drinks.filter(d => d.id !== id);
+            renderMenu(drinks);
+            renderAdminView();
+        }
+
+        function addNewDrink() {
+            const name = document.getElementById('new-name').value;
+            const price = parseInt(document.getElementById('new-price').value);
+            const cat = document.getElementById('new-cat').value;
+
+            if (!name || !price) return showToast("請輸入完整的名稱與價格");
+
+            const newDrink = {
+                id: Date.now(),
+                name: name,
+                price: price,
+                category: cat,
+                emoji: "🥤",
+                color: "bg-gray-100"
+            };
+
+            drinks.push(newDrink);
+            document.getElementById('new-name').value = "";
+            document.getElementById('new-price').value = "";
+            renderMenu(drinks);
+            renderAdminView();
+            showToast(`已新增：${name}`);
+        }
+
+        // === CSV 批次匯入功能 ===
+
+        // 下載現有所有品項 (含 ID，按名稱字母排序)
+        function downloadCurrentMenuCSV() {
+            if (drinks.length === 0) return showToast('目前沒有品項可下載');
+
+            const headers = ['ID', '名稱', '價格', '分類', '圖示', '顏色'];
+            const sortedDrinks = [...drinks].sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'));
+            const rows = sortedDrinks.map(d => [d.id, d.name, d.price, d.category, d.emoji, d.color]);
+
+            const csvContent = [headers, ...rows]
+                .map(row => row.map(cell => `"${cell}"`).join(','))
+                .join('\n');
+
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            const dateStr = new Date().toISOString().split('T')[0];
+            link.download = `飲品菜單_現有品項_${dateStr}.csv`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+            showToast(`已下載 ${drinks.length} 筆現有品項 (含 ID，依名稱排序)`);
+        }
+
+        // 處理 CSV 檔案匯入
+        function handleCSVImport(file) {
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    if (jsonData.length < 2) {
+                        showToast('CSV 檔案為空或只有標題列');
+                        return;
+                    }
+
+                    // 驗證標題列 - 支援 5 欄 (範本) 和 6 欄 (含 ID)
+                    const headers = jsonData[0].map(h => String(h).trim());
+                    const expectedHeaders5 = ['名稱', '價格', '分類', '圖示', '顏色'];
+                    const expectedHeaders6 = ['ID', '名稱', '價格', '分類', '圖示', '顏色'];
+                    const hasValidHeaders5 = expectedHeaders5.every((h, i) => headers[i] === h);
+                    const hasValidHeaders6 = expectedHeaders6.every((h, i) => headers[i] === h);
+                    const hasValidHeaders = hasValidHeaders5 || hasValidHeaders6;
+
+                    if (!hasValidHeaders) {
+                        showToast('CSV 格式錯誤：標題列必須為「名稱,價格,分類,圖示,顏色」或「ID,名稱,價格,分類,圖示,顏色」');
+                        return;
+                    }
+
+                    const hasIdColumn = hasValidHeaders6;
+
+                    // 解析資料列
+                    const rows = jsonData.slice(1);
+                    csvImportData = { valid: [], invalid: [] };
+
+                    rows.forEach((row, index) => {
+                        const rowNum = index + 2; // Excel 行號 (1-based + 標題列)
+                        const validation = validateDrinkRow(row, rowNum, hasIdColumn);
+                        if (validation.valid) {
+                            csvImportData.valid.push(validation.data);
+                        } else {
+                            csvImportData.invalid.push({ row: rowNum, data: row, error: validation.error });
+                        }
+                    });
+
+                    // 顯示預覽模態框
+                    showCSVPreviewModal();
+
+                } catch (err) {
+                    console.error('CSV 解析錯誤:', err);
+                    showToast('CSV 檔案讀取失敗：' + err.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+
+            // 重置 file input
+            document.getElementById('csv-import').value = '';
+        }
+
+        // 產生下一個順序 ID
+        function getNextDrinkId() {
+            const maxId = drinks.reduce((max, d) => {
+                const id = parseInt(d.id);
+                return !isNaN(id) && id > max ? id : max;
+            }, 0);
+            return maxId + 1;
+        }
+
+        // 驗證單筆飲品資料 (支援 5 欄無 ID、6 欄有 ID)
+        function validateDrinkRow(row, rowNum, hasIdColumn) {
+            let id = null;
+            let name, price, category, emoji, color;
+
+            if (hasIdColumn) {
+                [id, name, price, category, emoji, color] = row;
+                id = id ? String(id).trim() : null;
+            } else {
+                [name, price, category, emoji, color] = row;
+            }
+
+            // 檢查必填欄位
+            if (!name || String(name).trim() === '') {
+                return { valid: false, error: `第 ${rowNum} 行：名稱不可為空` };
+            }
+
+            const priceNum = parseInt(price);
+            if (isNaN(priceNum) || priceNum <= 0) {
+                return { valid: false, error: `第 ${rowNum} 行：價格必須為正整數` };
+            }
+
+            const cat = String(category || '').trim();
+            if (!['純茶', '拿鐵', '果茶'].includes(cat)) {
+                return { valid: false, error: `第 ${rowNum} 行：分類必須為「純茶」、「拿鐵」或「果茶」` };
+            }
+
+            const nameTrimmed = String(name).trim();
+
+            // 如果有提供 ID，檢查是否為現有品項
+            let existingDrink = null;
+            if (id) {
+                const idNum = parseInt(id);
+                if (!isNaN(idNum)) {
+                    existingDrink = drinks.find(d => parseInt(d.id) === idNum);
+                }
+            }
+
+            // 如果有 ID 且找到現有品項 -> 更新模式
+            // 如果有 ID 但找不到 -> 視為新品項，但保留該 ID (若無衝突) 或重新產生
+            // 如果無 ID -> 新增模式，產生新 ID
+            let finalId;
+            let isUpdate = false;
+
+            if (existingDrink) {
+                finalId = existingDrink.id;
+                isUpdate = true;
+            } else if (id) {
+                const idNum = parseInt(id);
+                if (!isNaN(idNum) && !drinks.some(d => parseInt(d.id) === idNum)) {
+                    finalId = idNum; // 使用提供的 ID (無衝突)
+                } else {
+                    finalId = getNextDrinkId(); // ID 衝突或無效，產生新 ID
+                }
+            } else {
+                finalId = getNextDrinkId(); // 無 ID，產生新 ID
+            }
+
+            // 檢查重複名稱 (排除自己如果是更新模式)
+            if (!isUpdate && drinks.some(d => d.name === nameTrimmed)) {
+                return { valid: false, error: `第 ${rowNum} 行：品項「${nameTrimmed}」已存在，將跳過` };
+            }
+            if (isUpdate && drinks.some(d => d.name === nameTrimmed && d.id !== finalId)) {
+                return { valid: false, error: `第 ${rowNum} 行：品項「${nameTrimmed}」已被其他品項使用，將跳過` };
+            }
+
+            // 取得預設樣式
+            const style = categoryStyles[cat] || { color: 'bg-gray-100', emoji: '🥤' };
+
+            return {
+                valid: true,
+                isUpdate: isUpdate,
+                data: {
+                    id: finalId,
+                    name: nameTrimmed,
+                    price: priceNum,
+                    category: cat,
+                    emoji: String(emoji || '').trim() || style.emoji,
+                    color: String(color || '').trim() || style.color
+                }
+            };
+        }
+
+        // 顯示 CSV 預覽模態框
+        function showCSVPreviewModal() {
+            const modal = document.getElementById('csv-preview-modal');
+            const summary = document.getElementById('csv-preview-summary');
+            const validCount = document.getElementById('valid-count');
+            const invalidCount = document.getElementById('invalid-count');
+            const validRows = document.getElementById('csv-valid-rows');
+            const invalidRows = document.getElementById('csv-invalid-rows');
+            const invalidSection = document.getElementById('csv-preview-invalid');
+            const confirmBtn = document.getElementById('csv-confirm-btn');
+
+            validCount.textContent = csvImportData.valid.length;
+            invalidCount.textContent = csvImportData.invalid.length;
+
+            const newCount = csvImportData.valid.filter(i => !i.isUpdate).length;
+            const updateCount = csvImportData.valid.filter(i => i.isUpdate).length;
+
+            // 摘要
+            summary.innerHTML = `
+                <div class="grid grid-cols-3 gap-4 text-sm">
+                    <div class="bg-green-50 p-3 rounded-lg border border-green-100">
+                        <p class="font-bold text-green-800">${newCount} 筆將新增</p>
+                        <p class="text-green-600">全新品項</p>
+                    </div>
+                    <div class="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                        <p class="font-bold text-blue-800">${updateCount} 筆將更新</p>
+                        <p class="text-blue-600">依 ID 比對現有品項</p>
+                    </div>
+                    <div class="bg-red-50 p-3 rounded-lg border border-red-100">
+                        <p class="font-bold text-red-800">${csvImportData.invalid.length} 筆將跳過</p>
+                        <p class="text-red-600">格式錯誤或名稱重複</p>
+                    </div>
+                </div>
+            `;
+
+            // 有效資料列表
+            validRows.innerHTML = csvImportData.valid.map((item, i) => `
+                <tr class="hover:bg-green-50">
+                    <td class="px-4 py-2 font-medium">${item.name}</td>
+                    <td class="px-4 py-2">NT$ ${item.price}</td>
+                    <td class="px-4 py-2">
+                        <span class="px-2 py-1 text-xs rounded-full ${item.category === '純茶' ? 'bg-green-100 text-green-700' : item.category === '拿鐵' ? 'bg-amber-100 text-amber-700' : 'bg-yellow-100 text-yellow-700'}">
+                            ${item.category}
+                        </span>
+                    </td>
+                    <td class="px-4 py-2 text-center text-lg">${item.emoji}</td>
+                    <td class="px-4 py-2">
+                        <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-600">${item.color}</span>
+                    </td>
+                    <td class="px-4 py-2">
+                        <span class="px-2 py-1 text-xs rounded-full ${item.isUpdate ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}">
+                            ${item.isUpdate ? '🔄 更新' : '✨ 新增'}
+                        </span>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="6" class="px-4 py-4 text-center text-gray-400">無有效資料</td></tr>';
+
+            // 無效資料列表
+            if (csvImportData.invalid.length > 0) {
+                invalidSection.classList.remove('hidden');
+                invalidRows.innerHTML = csvImportData.invalid.map(item => `
+                    <tr class="hover:bg-red-50">
+                        <td class="px-4 py-2 font-mono text-sm">${JSON.stringify(item.data)}</td>
+                        <td class="px-4 py-2 text-red-600">${item.error}</td>
+                    </tr>
+                `).join('');
+            } else {
+                invalidSection.classList.add('hidden');
+            }
+
+            // 如果沒有有效資料，禁用確認按鈕
+            confirmBtn.disabled = csvImportData.valid.length === 0;
+            confirmBtn.className = csvImportData.valid.length === 0
+                ? 'px-6 py-3 bg-gray-300 text-gray-500 rounded-xl font-bold cursor-not-allowed'
+                : 'px-6 py-3 bg-blue-500 text-white rounded-xl font-bold shadow-md hover:bg-blue-600 transition';
+
+            modal.classList.replace('hidden', 'flex');
+        }
+
+        // 關閉 CSV 預覽模態框
+        function closeCSVPreviewModal() {
+            document.getElementById('csv-preview-modal').classList.replace('flex', 'hidden');
+            csvImportData = { valid: [], invalid: [] };
+        }
+
+        // 確認匯入
+        function confirmCSVImport() {
+            if (csvImportData.valid.length === 0) return;
+
+            let addedCount = 0;
+            let updatedCount = 0;
+            csvImportData.valid.forEach(item => {
+                const existingIndex = drinks.findIndex(d => parseInt(d.id) === parseInt(item.id));
+                if (existingIndex >= 0) {
+                    // 更新現有品項
+                    drinks[existingIndex] = { ...drinks[existingIndex], ...item };
+                    updatedCount++;
+                } else {
+                    // 新增品項
+                    drinks.push(item);
+                    addedCount++;
+                }
+            });
+
+            renderMenu(drinks);
+            renderAdminView();
+            closeCSVPreviewModal();
+            const msg = addedCount > 0 && updatedCount > 0
+                ? `成功匯入：新增 ${addedCount} 筆、更新 ${updatedCount} 筆`
+                : addedCount > 0
+                    ? `成功匯入 ${addedCount} 筆飲品資料`
+                    : `成功更新 ${updatedCount} 筆飲品資料`;
+            showToast(msg);
+        }
+
+        function toggleCartMobile() {
+            const sidebar = document.getElementById('cart-sidebar');
+            if (sidebar.classList.contains('hidden')) {
+                sidebar.classList.remove('hidden', 'lg:block');
+                sidebar.classList.add('fixed', 'inset-x-4', 'bottom-4', 'z-[150]', 'max-h-[80vh]', 'overflow-y-auto');
+            } else {
+                sidebar.classList.add('hidden', 'lg:block');
+                sidebar.classList.remove('fixed', 'inset-x-4', 'bottom-4', 'z-[150]', 'max-h-[80vh]', 'overflow-y-auto');
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.style.opacity = '1';
+            setTimeout(() => toast.style.opacity = '0', 2000);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

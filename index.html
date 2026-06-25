@@ -26,30 +26,83 @@
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
+    <style>
+        .header-gradient {
+            background: linear-gradient(135deg, #0d9488 0%, #14b8a6 50%, #2dd4bf 100%);
+        }
+        @media (max-width: 1023px) {
+            .bottom-cart-bar { display: flex; align-items: center; justify-content: space-between; }
+        }
+        .cart-drawer-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+            z-index: 100; opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .cart-drawer-overlay.open { opacity: 1; pointer-events: auto; }
+        .cart-drawer-panel {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            max-height: 85vh; background: white;
+            border-radius: 20px 20px 0 0;
+            z-index: 110;
+            transform: translateY(100%);
+            transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+            overflow: hidden; display: flex; flex-direction: column;
+        }
+        .cart-drawer-panel.open { transform: translateY(0); }
+        @media (max-width: 639px) {
+            #order-modal .modal-content {
+                align-self: flex-end;
+                border-radius: 20px 20px 0 0;
+                max-height: 90vh;
+                margin-top: auto;
+                animation: slideUp 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+            }
+            #order-modal { align-items: flex-end; padding: 0; }
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .toast-success { background: #059669 !important; }
+        .toast-error { background: #dc2626 !important; }
+        .toast-info { background: #1f2937 !important; }
+        @media (max-width: 767px) {
+            .order-table-thead { display: none; }
+            .order-table-row {
+                display: block; border-bottom: 1px solid #f3f4f6; padding: 16px;
+            }
+            .order-table-row td {
+                display: flex; justify-content: space-between;
+                padding: 4px 0; border: none;
+            }
+            .order-table-row td:last-child { padding-top: 8px; border-top: 1px solid #f3f4f6; margin-top: 4px; }
+        }
+        .empty-state { animation: float 3s ease-in-out infinite; }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+    </style>
 </head>
 <body class="text-gray-800">
 
     <!-- 頂部導覽列 -->
-    <header class="bg-white shadow-sm sticky top-0 z-50">
+    <header class="header-gradient shadow-lg sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
             <div class="flex items-center space-x-2 cursor-pointer" onclick="switchView('user')">
-                <div class="w-10 h-10 bg-teal-500 rounded-full flex items-center justify-center text-white">
+                <div class="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center text-white">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.344l-.707-.707M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
                 </div>
-                <h1 class="text-xl font-bold text-teal-600 hidden sm:block">網路管理餐飲飲料系統</h1>
+                <h1 class="text-xl font-bold text-white hidden sm:block">網路管理餐飲飲料系統</h1>
             </div>
 
             <div class="flex items-center space-x-6">
-                <!-- 視圖切換按鈕 -->
-                <nav class="flex bg-gray-100 p-1 rounded-lg">
-                    <button id="view-btn-user" onclick="switchView('user')" class="px-4 py-1.5 rounded-md text-sm font-bold transition bg-white text-teal-600 shadow-sm">前台點餐</button>
-                    <button id="view-btn-admin" onclick="switchView('admin')" class="px-4 py-1.5 rounded-md text-sm font-bold transition text-gray-500 hover:text-teal-600">管理後台</button>
+                <nav class="flex bg-white bg-opacity-20 p-1 rounded-lg">
+                    <button id="view-btn-user" onclick="switchView('user')" class="px-4 py-1.5 rounded-md text-sm font-bold transition bg-white text-teal-700 shadow-sm">前台點餐</button>
+                    <button id="view-btn-admin" onclick="switchView('admin')" class="px-4 py-1.5 rounded-md text-sm font-bold transition text-white hover:bg-white hover:bg-opacity-10">管理後台</button>
                 </nav>
 
-                <div class="relative cursor-pointer" onclick="toggleCartMobile()">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div class="relative hidden lg:block">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                     </svg>
                     <span id="cart-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
@@ -58,9 +111,26 @@
         </div>
     </header>
 
+    <!-- 手機底部購物車 Bar -->
+    <div id="bottom-cart-bar" class="bottom-cart-bar hidden lg:hidden" onclick="openCartDrawer()">
+        <div class="flex items-center space-x-3">
+            <div class="relative">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+                <span id="bottom-cart-count" class="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">0</span>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">購物車</p>
+                <p id="bottom-cart-total" class="font-bold text-teal-600">NT$ 0</p>
+            </div>
+        </div>
+        <button class="bg-teal-500 text-white px-6 py-2.5 rounded-xl font-bold shadow-md active:scale-95 transition-transform">查看訂單</button>
+    </div>
+
     <!-- 前台畫面 -->
     <div id="view-user" class="fade-in">
-        <main class="max-w-7xl mx-auto px-4 py-8 flex flex-col lg:flex-row gap-8">
+        <main class="max-w-7xl mx-auto px-4 py-8 pb-24 lg:pb-8 flex flex-col lg:flex-row gap-8">
             <!-- 左側菜單區 -->
             <div class="flex-1">
                 <div class="flex space-x-4 mb-8 overflow-x-auto pb-2">
@@ -98,7 +168,7 @@
 
     <!-- 後台管理系統 -->
     <div id="view-admin" class="hidden fade-in">
-        <main class="max-w-7xl mx-auto px-4 py-8">
+        <main class="max-w-7xl mx-auto px-4 py-8 pb-24 lg:pb-8">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <!-- 統計卡片 -->
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
@@ -131,8 +201,8 @@
                         </div>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+                        <table class="w-full text-left hidden md:table">
+                            <thead class="order-table-thead bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
                                 <tr>
                                     <th class="px-6 py-4">單號</th>
                                     <th class="px-6 py-4">時間</th>
@@ -142,9 +212,10 @@
                                 </tr>
                             </thead>
                             <tbody id="admin-order-list" class="divide-y divide-gray-100">
-                                <!-- 訂單列表內容 -->
                             </tbody>
                         </table>
+                        <div id="admin-order-cards" class="md:hidden divide-y divide-gray-100">
+                        </div>
                     </div>
                 </div>
 
@@ -193,9 +264,34 @@
         </main>
     </div>
 
+    <!-- 購物車 Drawer Overlay -->
+    <div id="cart-drawer-overlay" class="cart-drawer-overlay" onclick="closeCartDrawer()"></div>
+    <!-- 購物車 Drawer 面板 -->
+    <div id="cart-drawer-panel" class="cart-drawer-panel lg:hidden">
+        <div class="p-4 border-b border-gray-100 flex items-center justify-between shrink-0">
+            <h2 class="text-lg font-bold flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                您的訂單
+            </h2>
+            <button onclick="closeCartDrawer()" class="text-gray-400 hover:text-gray-600 p-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <div id="cart-drawer-items" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+        <div class="p-4 border-t border-gray-100 bg-gray-50 shrink-0">
+            <div class="flex justify-between mb-3">
+                <span class="font-bold">總計</span>
+                <span id="drawer-total" class="text-xl font-bold text-teal-600">NT$ 0</span>
+            </div>
+            <button onclick="checkout()" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-3.5 rounded-xl shadow-lg transition active:scale-95">確認訂單</button>
+        </div>
+    </div>
+
     <!-- 訂購彈窗 (Modal) -->
     <div id="order-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] hidden items-center justify-center p-4">
-        <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl">
+        <div class="modal-content bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl">
             <div class="h-32 bg-teal-500 flex items-center justify-center text-white">
                 <h3 id="modal-title" class="text-2xl font-bold">飲料名稱</h3>
             </div>
@@ -324,13 +420,13 @@
             if (view === 'user') {
                 userView.classList.remove('hidden');
                 adminView.classList.add('hidden');
-                btnUser.className = "px-4 py-1.5 rounded-md text-sm font-bold transition bg-white text-teal-600 shadow-sm";
-                btnAdmin.className = "px-4 py-1.5 rounded-md text-sm font-bold transition text-gray-500 hover:text-teal-600";
+                btnUser.className = "px-4 py-1.5 rounded-md text-sm font-bold transition bg-white text-teal-700 shadow-sm";
+                btnAdmin.className = "px-4 py-1.5 rounded-md text-sm font-bold transition text-white hover:bg-white hover:bg-opacity-10";
             } else {
                 userView.classList.add('hidden');
                 adminView.classList.remove('hidden');
-                btnAdmin.className = "px-4 py-1.5 rounded-md text-sm font-bold transition bg-white text-teal-600 shadow-sm";
-                btnUser.className = "px-4 py-1.5 rounded-md text-sm font-bold transition text-gray-500 hover:text-teal-600";
+                btnAdmin.className = "px-4 py-1.5 rounded-md text-sm font-bold transition bg-white text-teal-700 shadow-sm";
+                btnUser.className = "px-4 py-1.5 rounded-md text-sm font-bold transition text-white hover:bg-white hover:bg-opacity-10";
                 renderAdminView();
             }
         }
@@ -423,20 +519,39 @@
             cart.push({ ...currentSelectingDrink, sugar: selectedSugar, ice: selectedIce, cartId: Date.now() });
             updateCartUI();
             closeModal();
-            showToast(`已加入：${currentSelectingDrink.name}`);
+            showToast(`已加入：${currentSelectingDrink.name}`, "success");
         }
 
         function updateCartUI() {
             const container = document.getElementById('cart-items');
-            document.getElementById('cart-count').innerText = cart.length;
+            const drawerContainer = document.getElementById('cart-drawer-items');
+            const count = cart.length;
+            const total = cart.reduce((s, i) => s + i.price, 0);
+
+            document.getElementById('cart-count').innerText = count;
+            const bottomCount = document.getElementById('bottom-cart-count');
+            if (bottomCount) bottomCount.innerText = count;
+            const bottomTotal = document.getElementById('bottom-cart-total');
+            if (bottomTotal) bottomTotal.innerText = `NT$ ${total}`;
+            document.getElementById('total').innerText = `NT$ ${total}`;
+            const drawerTotal = document.getElementById('drawer-total');
+            if (drawerTotal) drawerTotal.innerText = `NT$ ${total}`;
+
+            const bottomBar = document.getElementById('bottom-cart-bar');
+            if (bottomBar) {
+                if (count > 0) bottomBar.classList.remove('hidden');
+                else bottomBar.classList.add('hidden');
+            }
             
-            if (cart.length === 0) {
-                container.innerHTML = `<div class="text-center py-10 text-gray-400"><p>購物車空空的</p></div>`;
-                document.getElementById('total').innerText = "NT$ 0";
+            const emptyHtml = `<div class="text-center py-10 text-gray-400"><div class="text-5xl mb-3 empty-state">🛒</div><p>購物車空空的</p><p class="text-sm mt-1">去點杯飲料吧！</p></div>`;
+            
+            if (count === 0) {
+                container.innerHTML = emptyHtml;
+                if (drawerContainer) drawerContainer.innerHTML = emptyHtml;
                 return;
             }
 
-            container.innerHTML = cart.map(item => `
+            const itemHtml = item => `
                 <div class="flex justify-between items-center bg-gray-50 p-3 rounded-xl">
                     <div>
                         <h4 class="font-bold text-gray-800 text-sm">${item.name}</h4>
@@ -444,11 +559,10 @@
                         <p class="text-teal-600 font-bold text-xs">NT$ ${item.price}</p>
                     </div>
                     <button onclick="removeFromCart(${item.cartId})" class="text-gray-300 hover:text-red-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
-                </div>
-            `).join('');
+                </div>`;
 
-            const total = cart.reduce((s, i) => s + i.price, 0);
-            document.getElementById('total').innerText = `NT$ ${total}`;
+            container.innerHTML = cart.map(itemHtml).join('');
+            if (drawerContainer) drawerContainer.innerHTML = cart.map(itemHtml).join('');
         }
 
         function removeFromCart(id) {
@@ -457,7 +571,7 @@
         }
 
         function checkout() {
-            if (cart.length === 0) return showToast("購物車是空的喔！");
+            if (cart.length === 0) return showToast("購物車是空的喔！", "error");
             
             const total = cart.reduce((s, i) => s + i.price, 0);
             const order = {
@@ -470,15 +584,15 @@
             orders.unshift(order); // 最新的排前面
             cart = [];
             updateCartUI();
-            showToast("下單成功！可前往後台查看。");
+            showToast("下單成功！可前往後台查看。", "success");
             
-            if (window.innerWidth < 1024) toggleCartMobile();
+            closeCartDrawer();
         }
 
         // 後台：匯出 Excel
         function exportToExcel() {
             if (orders.length === 0) {
-                showToast("目前沒有訂單可以匯出！");
+                showToast("目前沒有訂單可以匯出！", "error");
                 return;
             }
 
@@ -507,40 +621,63 @@
             const dateStr = new Date().toISOString().split('T')[0];
             XLSX.writeFile(wb, `網路管理餐飲飲料系統_訂單紀錄_${dateStr}.xlsx`);
             
-            showToast("Excel 檔案已匯出！");
+            showToast("Excel 檔案已匯出！", "success");
         }
 
         // 後台：管理功能
         function renderAdminView() {
-            // 統計
             const totalSales = orders.reduce((s, o) => s + o.total, 0);
             document.getElementById('admin-total-sales').innerText = `NT$ ${totalSales}`;
             document.getElementById('admin-order-count').innerText = orders.length;
             
-            // 熱門飲品計算
             const counts = {};
             orders.forEach(o => o.items.forEach(i => counts[i.name] = (counts[i.name] || 0) + 1));
             const top = Object.keys(counts).sort((a,b) => counts[b] - counts[a])[0];
             document.getElementById('admin-top-drink').innerText = top || "-";
 
-            // 訂單列表
+            // 訂單列表（桌機表格）
             const list = document.getElementById('admin-order-list');
             if (orders.length === 0) {
                 list.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center text-gray-400 italic">目前尚無訂單紀錄</td></tr>`;
             } else {
                 list.innerHTML = orders.map(o => `
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="px-6 py-4 font-mono font-bold text-gray-500">#${o.id}</td>
-                        <td class="px-6 py-4 text-sm text-gray-500">${o.time}</td>
+                    <tr class="order-table-row hover:bg-gray-50 transition">
+                        <td class="px-6 py-4 font-mono font-bold text-gray-500"><span class="md:hidden font-bold text-gray-700">單號：</span>#${o.id}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500"><span class="md:hidden font-bold text-gray-700">時間：</span>${o.time}</td>
                         <td class="px-6 py-4 text-sm">
+                            <span class="md:hidden font-bold text-gray-700 block mb-1">品項：</span>
                             ${o.items.map(i => `<div class="mb-1">${i.name} (${i.sugar}/${i.ice})</div>`).join('')}
                         </td>
-                        <td class="px-6 py-4 font-bold text-teal-600">NT$ ${o.total}</td>
+                        <td class="px-6 py-4 font-bold text-teal-600"><span class="md:hidden font-bold text-gray-700">總額：</span>NT$ ${o.total}</td>
                         <td class="px-6 py-4">
                             <button onclick="deleteOrder(${o.id})" class="text-red-400 hover:text-red-600 text-xs font-bold underline">刪除</button>
                         </td>
                     </tr>
                 `).join('');
+            }
+
+            // 訂單列表（手機卡片）
+            const cardContainer = document.getElementById('admin-order-cards');
+            if (cardContainer) {
+                if (orders.length === 0) {
+                    cardContainer.innerHTML = `<div class="text-center py-10 text-gray-400"><div class="text-5xl mb-3 empty-state">📋</div><p>目前尚無訂單紀錄</p></div>`;
+                } else {
+                    cardContainer.innerHTML = orders.map(o => `
+                        <div class="p-4 bg-white border-b border-gray-100">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="font-mono font-bold text-gray-500">#${o.id}</span>
+                                <span class="text-xs text-gray-400">${o.time}</span>
+                            </div>
+                            <div class="text-sm text-gray-600 mb-3">
+                                ${o.items.map(i => `<div>${i.name}（${i.sugar}/${i.ice}）</div>`).join('')}
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-teal-600">NT$ ${o.total}</span>
+                                <button onclick="deleteOrder(${o.id})" class="text-red-400 hover:text-red-600 text-xs font-bold underline">刪除</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
             }
 
             // 菜單列表
@@ -583,7 +720,7 @@
             const price = parseInt(document.getElementById('new-price').value);
             const cat = document.getElementById('new-cat').value;
 
-            if (!name || !price) return showToast("請輸入完整的名稱與價格");
+            if (!name || !price) return showToast("請輸入完整的名稱與價格", "error");
 
             const newDrink = {
                 id: getNextDrinkId(),
@@ -599,14 +736,14 @@
             document.getElementById('new-price').value = "";
             renderMenu(drinks);
             renderAdminView();
-            showToast(`已新增：${name}`);
+            showToast(`已新增：${name}`, "success");
         }
 
         // === CSV 批次匯入功能 ===
 
         // 下載現有所有品項 (含 ID，按名稱字母排序)
         function downloadCurrentMenuCSV() {
-            if (drinks.length === 0) return showToast('目前沒有品項可下載');
+            if (drinks.length === 0) return showToast('目前沒有品項可下載', "error");
 
             const headers = ['ID', '名稱', '價格', '分類', '圖示', '顏色'];
             const sortedDrinks = [...drinks].sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'));
@@ -623,7 +760,7 @@
             link.download = `飲品菜單_現有品項_${dateStr}.csv`;
             link.click();
             URL.revokeObjectURL(link.href);
-            showToast(`已下載 ${drinks.length} 筆現有品項 (含 ID，依名稱排序)`);
+            showToast(`已下載 ${drinks.length} 筆現有品項 (含 ID，依名稱排序)`, "success");
         }
 
         // 處理 CSV 檔案匯入
@@ -640,7 +777,7 @@
                     const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
                     if (jsonData.length < 2) {
-                        showToast('CSV 檔案為空或只有標題列');
+                        showToast('CSV 檔案為空或只有標題列', "error");
                         return;
                     }
 
@@ -653,7 +790,7 @@
                     const hasValidHeaders = hasValidHeaders5 || hasValidHeaders6;
 
                     if (!hasValidHeaders) {
-                        showToast('CSV 格式錯誤：標題列必須為「名稱,價格,分類,圖示,顏色」或「ID,名稱,價格,分類,圖示,顏色」');
+                        showToast('CSV 格式錯誤：標題列必須為「名稱,價格,分類,圖示,顏色」或「ID,名稱,價格,分類,圖示,顏色」', "error");
                         return;
                     }
 
@@ -678,7 +815,7 @@
 
                 } catch (err) {
                     console.error('CSV 解析錯誤:', err);
-                    showToast('CSV 檔案讀取失敗：' + err.message);
+                    showToast('CSV 檔案讀取失敗：' + err.message, "error");
                 }
             };
             reader.readAsArrayBuffer(file);
@@ -891,22 +1028,27 @@
                 : addedCount > 0
                     ? `成功匯入 ${addedCount} 筆飲品資料`
                     : `成功更新 ${updatedCount} 筆飲品資料`;
-            showToast(msg);
+            showToast(msg, "success");
         }
 
-        function toggleCartMobile() {
-            const sidebar = document.getElementById('cart-sidebar');
-            if (sidebar.classList.contains('hidden')) {
-                sidebar.classList.remove('hidden', 'lg:block');
-                sidebar.classList.add('fixed', 'inset-x-4', 'bottom-4', 'z-[150]', 'max-h-[80vh]', 'overflow-y-auto');
-            } else {
-                sidebar.classList.add('hidden', 'lg:block');
-                sidebar.classList.remove('fixed', 'inset-x-4', 'bottom-4', 'z-[150]', 'max-h-[80vh]', 'overflow-y-auto');
-            }
+        function openCartDrawer() {
+            document.getElementById('cart-drawer-overlay').classList.add('open');
+            document.getElementById('cart-drawer-panel').classList.add('open');
+            document.body.style.overflow = 'hidden';
         }
 
-        function showToast(msg) {
+        function closeCartDrawer() {
+            document.getElementById('cart-drawer-overlay').classList.remove('open');
+            document.getElementById('cart-drawer-panel').classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        function showToast(msg, type) {
             const toast = document.getElementById('toast');
+            toast.className = 'fixed bottom-8 left-1/2 transform -translate-x-1/2 text-white px-6 py-3 rounded-full shadow-xl opacity-0 transition-opacity duration-300 z-[200] pointer-events-none';
+            if (type === 'success') toast.classList.add('toast-success');
+            else if (type === 'error') toast.classList.add('toast-error');
+            else toast.classList.add('toast-info');
             toast.innerText = msg;
             toast.style.opacity = '1';
             setTimeout(() => toast.style.opacity = '0', 2000);

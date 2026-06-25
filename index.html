@@ -357,8 +357,15 @@
                         <div id="ice-options" class="grid grid-cols-3 gap-2"></div>
                     </div>
                 </div>
-                <div id="food-custom-section" class="hidden mb-8 text-center py-6 glass rounded-xl">
-                    <p class="text-gray-400 text-sm">🥢 客製化選項待設計</p>
+                <div id="food-custom-section" class="hidden mb-8">
+                    <div class="mb-4">
+                        <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">份量</label>
+                        <div id="food-size-options" class="grid grid-cols-3 gap-2"></div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider" id="food-type-label">種類</label>
+                        <div id="food-type-options" class="grid grid-cols-3 gap-2"></div>
+                    </div>
                 </div>
                 <div class="flex space-x-4">
                     <button onclick="closeModal()" class="flex-1 px-6 py-3 glass-btn rounded-xl font-bold text-gray-600 shadow-sm">取消</button>
@@ -461,6 +468,14 @@
         const sugarLevels = ["正常糖", "少糖", "半糖", "微糖", "二分糖", "無糖"];
         const iceLevels = ["正常冰", "少冰", "微冰", "去冰", "完全去冰", "溫熱"];
 
+        const foodCustomizations = {
+            '飯': { sizes: ['大', '中', '小'], types: ['糙米', '白米', '日本香米'], typeLabel: '種類' },
+            '麵': { sizes: ['大', '中', '小'], types: ['细麵', '粗麵', '寬麵'], typeLabel: '麵條' },
+            '粥': { sizes: ['大', '中', '小'], types: ['豚骨湯汁', '四川麻辣', '白水清湯'], typeLabel: '湯底' }
+        };
+        let selectedFoodSize = "中";
+        let selectedFoodType = "";
+
         // 分類對應的預設樣式
         const categoryStyles = {
             '純茶': { color: 'bg-green-100', emoji: '🍵' },
@@ -480,6 +495,7 @@
             renderFoodMenu(foods);
             renderAdminView();
             renderOptionButtons();
+            // food 客製化選項按鈕由 openFoodModal 動態產生
         }
 
         // 視圖切換
@@ -611,6 +627,22 @@
             document.getElementById('order-modal').classList.replace('hidden', 'flex');
             document.getElementById('sugar-ice-section').classList.add('hidden');
             document.getElementById('food-custom-section').classList.remove('hidden');
+
+            const cat = currentSelectingDrink.category;
+            const opts = foodCustomizations[cat] || foodCustomizations['飯'];
+
+            document.getElementById('food-type-label').innerText = opts.typeLabel;
+            document.getElementById('food-size-options').innerHTML = opts.sizes.map(s => `
+                <button class="opt-food-size glass-btn rounded-lg py-2" data-val="${s}" onclick="setFoodSize('${s}')">${s}</button>
+            `).join('');
+            document.getElementById('food-type-options').innerHTML = opts.types.map(t => `
+                <button class="opt-food-type glass-btn rounded-lg py-2" data-val="${t}" onclick="setFoodType('${t}')">${t}</button>
+            `).join('');
+
+            selectedFoodSize = opts.sizes[1];
+            selectedFoodType = opts.types[0];
+            updateBtnUI('.opt-food-size', selectedFoodSize);
+            updateBtnUI('.opt-food-type', selectedFoodType);
         }
 
         function closeModal() {
@@ -627,6 +659,16 @@
             updateBtnUI('.opt-btn-ice', val);
         }
 
+        function setFoodSize(val) {
+            selectedFoodSize = val;
+            updateBtnUI('.opt-food-size', val);
+        }
+
+        function setFoodType(val) {
+            selectedFoodType = val;
+            updateBtnUI('.opt-food-type', val);
+        }
+
         function updateBtnUI(selector, val) {
             document.querySelectorAll(selector).forEach(btn => {
                 if (btn.getAttribute('data-val') === val) {
@@ -640,7 +682,17 @@
         // 購物車邏輯
         function addToCartConfirm() {
             const isFood = currentSelectingDrink.id >= 100;
-            cart.push({ ...currentSelectingDrink, sugar: isFood ? "—" : selectedSugar, ice: isFood ? "—" : selectedIce, cartId: Date.now() });
+            const item = { ...currentSelectingDrink, cartId: Date.now() };
+            if (isFood) {
+                item.foodSize = selectedFoodSize;
+                item.foodType = selectedFoodType;
+                item.sugar = "—";
+                item.ice = "—";
+            } else {
+                item.sugar = selectedSugar;
+                item.ice = selectedIce;
+            }
+            cart.push(item);
             updateCartUI();
             closeModal();
             showToast(`已加入：${currentSelectingDrink.name}`, "success");
@@ -675,15 +727,18 @@
                 return;
             }
 
-            const itemHtml = item => `
+            const itemHtml = item => {
+                const detail = item.foodSize ? `${item.foodSize} / ${item.foodType}` : `${item.sugar} / ${item.ice}`;
+                return `
                 <div class="flex justify-between items-center glass p-3 rounded-xl">
                     <div>
                         <h4 class="font-bold text-gray-800 text-sm">${item.name}</h4>
-                        <p class="text-xs text-gray-500">${item.sugar} / ${item.ice}</p>
+                        <p class="text-xs text-gray-500">${detail}</p>
                         <p class="text-teal-600 font-bold text-xs">NT$ ${item.price}</p>
                     </div>
                     <button onclick="removeFromCart(${item.cartId})" class="text-gray-300 hover:text-red-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
                 </div>`;
+            };
 
             container.innerHTML = cart.map(itemHtml).join('');
             if (drawerContainer) drawerContainer.innerHTML = cart.map(itemHtml).join('');
@@ -770,7 +825,7 @@
                         <td class="px-6 py-4 text-sm text-gray-500"><span class="md:hidden font-bold text-gray-700">時間：</span>${o.time}</td>
                         <td class="px-6 py-4 text-sm">
                             <span class="md:hidden font-bold text-gray-700 block mb-1">品項：</span>
-                            ${o.items.map(i => `<div class="mb-1">${i.name} (${i.sugar}/${i.ice})</div>`).join('')}
+                            ${o.items.map(i => `<div class="mb-1">${i.name} (${i.foodSize ? i.foodSize+'/'+i.foodType : i.sugar+'/'+i.ice})</div>`).join('')}
                         </td>
                         <td class="px-6 py-4 font-bold text-teal-600"><span class="md:hidden font-bold text-gray-700">總額：</span>NT$ ${o.total}</td>
                         <td class="px-6 py-4">
@@ -793,7 +848,7 @@
                                 <span class="text-xs text-gray-400">${o.time}</span>
                             </div>
                             <div class="text-sm text-gray-600 mb-3">
-                                ${o.items.map(i => `<div>${i.name}（${i.sugar}/${i.ice}）</div>`).join('')}
+                                ${o.items.map(i => `<div>${i.name}（${i.foodSize ? i.foodSize+'/'+i.foodType : i.sugar+'/'+i.ice}）</div>`).join('')}
                             </div>
                             <div class="flex justify-between items-center">
                                 <span class="font-bold text-teal-600">NT$ ${o.total}</span>

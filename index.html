@@ -129,7 +129,8 @@
 
             <div class="flex items-center space-x-6">
                 <nav class="flex glass p-1 rounded-lg">
-                    <button id="view-btn-user" onclick="switchView('user')" class="px-4 py-1.5 rounded-md text-sm font-bold transition glass-btn-active shadow-sm">前台點餐</button>
+                    <button id="view-btn-user" onclick="switchView('user')" class="px-4 py-1.5 rounded-md text-sm font-bold transition glass-btn-active shadow-sm">飲料點餐</button>
+                    <button id="view-btn-food" onclick="switchView('food')" class="px-4 py-1.5 rounded-md text-sm font-bold transition glass-btn text-gray-700">餐飲點餐</button>
                     <button id="view-btn-admin" onclick="switchView('admin')" class="px-4 py-1.5 rounded-md text-sm font-bold transition glass-btn text-gray-700">管理後台</button>
                 </nav>
 
@@ -293,6 +294,17 @@
         </main>
     </div>
 
+    <!-- 餐飲點餐頁面（待設計） -->
+    <div id="view-food" class="hidden fade-in">
+        <main class="max-w-7xl mx-auto px-4 py-8 pb-24 lg:pb-8">
+            <div class="text-center py-20">
+                <div class="text-6xl mb-6 empty-state">🍽️</div>
+                <h2 class="text-2xl font-bold text-gray-700 mb-2">餐飲點餐</h2>
+                <p class="text-gray-400">此頁面正在設計中，敬請期待！</p>
+            </div>
+        </main>
+    </div>
+
     <!-- 購物車 Drawer Overlay -->
     <div id="cart-drawer-overlay" class="cart-drawer-overlay" onclick="closeCartDrawer()"></div>
     <!-- 購物車 Drawer 面板 -->
@@ -439,22 +451,20 @@
         // 視圖切換
         function switchView(view) {
             const userView = document.getElementById('view-user');
+            const foodView = document.getElementById('view-food');
             const adminView = document.getElementById('view-admin');
             const btnUser = document.getElementById('view-btn-user');
+            const btnFood = document.getElementById('view-btn-food');
             const btnAdmin = document.getElementById('view-btn-admin');
+            const views = [userView, foodView, adminView];
+            const btns = [btnUser, btnFood, btnAdmin];
+            const activeClass = "px-4 py-1.5 rounded-md text-sm font-bold transition glass-btn-active shadow-sm";
+            const inactiveClass = "px-4 py-1.5 rounded-md text-sm font-bold transition glass-btn text-gray-700";
+            const activeIdx = view === 'user' ? 0 : view === 'food' ? 1 : 2;
 
-            if (view === 'user') {
-                userView.classList.remove('hidden');
-                adminView.classList.add('hidden');
-                btnUser.className = "px-4 py-1.5 rounded-md text-sm font-bold transition glass-btn-active shadow-sm";
-                btnAdmin.className = "px-4 py-1.5 rounded-md text-sm font-bold transition glass-btn text-gray-700";
-            } else {
-                userView.classList.add('hidden');
-                adminView.classList.remove('hidden');
-                btnAdmin.className = "px-4 py-1.5 rounded-md text-sm font-bold transition glass-btn-active shadow-sm";
-                btnUser.className = "px-4 py-1.5 rounded-md text-sm font-bold transition glass-btn text-gray-700";
-                renderAdminView();
-            }
+            views.forEach((v, i) => v.classList.toggle('hidden', i !== activeIdx));
+            btns.forEach((b, i) => b.className = i === activeIdx ? activeClass : inactiveClass);
+            if (view === 'admin') renderAdminView();
         }
 
         // 前台：渲染菜單

@@ -254,15 +254,21 @@
                 <!-- 菜單管理 -->
                 <div class="flex-1 glass-strong rounded-2xl shadow-sm overflow-hidden h-fit">
                     <div class="p-6 border-b border-white border-opacity-20">
-                        <h2 class="text-xl font-bold">菜單管理</h2>
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-xl font-bold">菜單管理</h2>
+                            <nav class="flex glass p-0.5 rounded-lg text-sm">
+                                <button id="menu-type-drink" onclick="setMenuType('drink')" class="px-3 py-1 rounded-md font-bold transition glass-btn-active shadow-sm">飲料</button>
+                                <button id="menu-type-food" onclick="setMenuType('food')" class="px-3 py-1 rounded-md font-bold transition glass-btn text-gray-700">餐飲</button>
+                            </nav>
+                        </div>
                     </div>
                     <div class="p-6">
                         <div class="space-y-4 mb-8" id="admin-menu-list">
                         </div>
                         <div class="p-4 glass rounded-xl mb-6">
-                            <h4 class="font-bold text-teal-700 mb-3">新增品項</h4>
+                            <h4 class="font-bold text-teal-700 mb-3" id="add-item-title">新增飲品</h4>
                             <div class="space-y-3">
-                                <input id="new-name" type="text" placeholder="飲品名稱" class="w-full px-3 py-2 glass rounded-lg text-sm placeholder-gray-400">
+                                <input id="new-name" type="text" placeholder="品項名稱" class="w-full px-3 py-2 glass rounded-lg text-sm placeholder-gray-400">
                                 <div class="flex space-x-2">
                                     <input id="new-price" type="number" placeholder="金額" class="w-2/3 px-3 py-2 glass rounded-lg text-sm placeholder-gray-400">
                                     <select id="new-cat" class="w-1/3 px-3 py-2 glass rounded-lg text-sm">
@@ -271,16 +277,16 @@
                                         <option value="果茶">果茶</option>
                                     </select>
                                 </div>
-                                <button onclick="addNewDrink()" class="w-full glass-btn-active text-white py-2 rounded-lg font-bold shadow-sm transition">新增到菜單</button>
+                                <button onclick="addNewItem()" class="w-full glass-btn-active text-white py-2 rounded-lg font-bold shadow-sm transition">新增到菜單</button>
                             </div>
                         </div>
 
                         <div class="p-4 glass rounded-xl">
                             <h4 class="font-bold text-blue-700 mb-3 flex items-center justify-between">
                                 批次匯入 (CSV)
-                                <button onclick="downloadCurrentMenuCSV()" class="text-xs px-3 py-1 glass text-teal-700 rounded hover:bg-white hover:bg-opacity-30 transition">下載現有所有品項</button>
+                                <button onclick="downloadCurrentMenuCSV()" class="text-xs px-3 py-1 glass text-teal-700 rounded hover:bg-white hover:bg-opacity-30 transition" id="csv-download-btn">下載飲品菜單</button>
                             </h4>
-                            <p class="text-sm text-blue-600 mb-3">支援欄位：ID、名稱、價格、分類、圖示、顏色（分類必須為：純茶、拿鐵、果茶）</p>
+                            <p class="text-sm text-blue-600 mb-3" id="csv-description">分類必須為：純茶、拿鐵、果茶</p>
                             <div class="flex space-x-3">
                                 <button onclick="document.getElementById('csv-import').click()" class="flex-1 glass-btn-active text-white py-2 rounded-lg font-bold shadow-sm transition">
                                     選擇 CSV 檔案匯入
@@ -467,6 +473,7 @@
 
         // CSV 匯入狀態
         let csvImportData = { valid: [], invalid: [] };
+        let currentMenuType = 'drink';
 
         function init() {
             renderMenu(drinks);
@@ -799,19 +806,25 @@
 
             // 菜單列表
             const menuList = document.getElementById('admin-menu-list');
-            menuList.innerHTML = drinks.map(d => `
-                <div class="flex justify-between items-center p-3 glass rounded-lg">
-                    <div>
-                        <span class="font-bold text-sm">${d.name}</span>
-                        <span class="text-xs text-gray-400 ml-2">NT$ ${d.price}</span>
+            const items = currentMenuType === 'drink' ? drinks : foods;
+            if (items.length === 0) {
+                menuList.innerHTML = `<div class="text-center py-6 text-gray-400 text-sm">尚無 ${currentMenuType === 'drink' ? '飲品' : '餐飲'} 品項</div>`;
+            } else {
+                menuList.innerHTML = items.map(d => `
+                    <div class="flex justify-between items-center p-3 glass rounded-lg">
+                        <div>
+                            <span class="font-bold text-sm">${d.name}</span>
+                            <span class="text-xs text-gray-400 ml-2">NT$ ${d.price}</span>
+                            <span class="text-xs text-gray-300 ml-1">(${d.category})</span>
+                        </div>
+                        <button onclick="deleteMenuItem(${d.id})" class="text-gray-300 hover:text-red-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
                     </div>
-                    <button onclick="deleteDrink(${d.id})" class="text-gray-300 hover:text-red-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                    </button>
-                </div>
-            `).join('');
+                `).join('');
+            }
         }
 
         function deleteOrder(id) {
@@ -826,45 +839,74 @@
             }
         }
 
-        function deleteDrink(id) {
-            drinks = drinks.filter(d => d.id !== id);
-            renderMenu(drinks);
+        function setMenuType(type) {
+            currentMenuType = type;
+            const isDrink = type === 'drink';
+            document.getElementById('menu-type-drink').className = isDrink
+                ? 'px-3 py-1 rounded-md font-bold transition glass-btn-active shadow-sm'
+                : 'px-3 py-1 rounded-md font-bold transition glass-btn text-gray-700';
+            document.getElementById('menu-type-food').className = isDrink
+                ? 'px-3 py-1 rounded-md font-bold transition glass-btn text-gray-700'
+                : 'px-3 py-1 rounded-md font-bold transition glass-btn-active shadow-sm';
+            document.getElementById('add-item-title').innerText = isDrink ? '新增飲品' : '新增餐飲';
+            document.getElementById('csv-download-btn').innerText = isDrink ? '下載飲品菜單' : '下載餐飲菜單';
+            document.getElementById('csv-description').innerText = isDrink
+                ? '分類必須為：純茶、拿鐵、果茶'
+                : '分類必須為：飯、麵、粥';
+
+            const catSelect = document.getElementById('new-cat');
+            if (isDrink) {
+                catSelect.innerHTML = '<option value="純茶">純茶</option><option value="拿鐵">拿鐵</option><option value="果茶">果茶</option>';
+            } else {
+                catSelect.innerHTML = '<option value="飯">飯</option><option value="麵">麵</option><option value="粥">粥</option>';
+            }
             renderAdminView();
         }
 
-        function addNewDrink() {
-            const name = document.getElementById('new-name').value;
+        function deleteMenuItem(id) {
+            if (currentMenuType === 'drink') {
+                drinks = drinks.filter(d => d.id !== id);
+                renderMenu(drinks);
+            } else {
+                foods = foods.filter(d => d.id !== id);
+                renderFoodMenu(foods);
+            }
+            renderAdminView();
+        }
+
+        function addNewItem() {
+            const name = document.getElementById('new-name').value.trim();
             const price = parseInt(document.getElementById('new-price').value);
             const cat = document.getElementById('new-cat').value;
 
             if (!name || !price) return showToast("請輸入完整的名稱與價格", "error");
 
-            const newDrink = {
-                id: getNextDrinkId(),
-                name: name,
-                price: price,
-                category: cat,
-                emoji: "🥤",
-                color: "bg-gray-100"
-            };
+            const isDrink = currentMenuType === 'drink';
+            const target = isDrink ? drinks : foods;
+            const id = isDrink ? getNextDrinkId() : getNextFoodId();
+            const defaults = isDrink ? { emoji: "🥤", color: "bg-gray-100" } : { emoji: "🍽️", color: "bg-gray-100" };
 
-            drinks.push(newDrink);
+            const newItem = { id, name, price, category: cat, ...defaults };
+            target.push(newItem);
+
             document.getElementById('new-name').value = "";
             document.getElementById('new-price').value = "";
-            renderMenu(drinks);
+
+            if (isDrink) renderMenu(drinks);
+            else renderFoodMenu(foods);
             renderAdminView();
             showToast(`已新增：${name}`, "success");
         }
 
         // === CSV 批次匯入功能 ===
 
-        // 下載現有所有品項 (含 ID，按名稱字母排序)
         function downloadCurrentMenuCSV() {
-            if (drinks.length === 0) return showToast('目前沒有品項可下載', "error");
+            const items = currentMenuType === 'drink' ? drinks : foods;
+            if (items.length === 0) return showToast('目前沒有品項可下載', "error");
 
             const headers = ['ID', '名稱', '價格', '分類', '圖示', '顏色'];
-            const sortedDrinks = [...drinks].sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'));
-            const rows = sortedDrinks.map(d => [d.id, d.name, d.price, d.category, d.emoji, d.color]);
+            const sorted = [...items].sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'));
+            const rows = sorted.map(d => [d.id, d.name, d.price, d.category, d.emoji, d.color]);
 
             const csvContent = [headers, ...rows]
                 .map(row => row.map(cell => `"${cell}"`).join(','))
@@ -874,10 +916,11 @@
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             const dateStr = new Date().toISOString().split('T')[0];
-            link.download = `飲品菜單_現有品項_${dateStr}.csv`;
+            const prefix = currentMenuType === 'drink' ? '飲品' : '餐飲';
+            link.download = `${prefix}菜單_現有品項_${dateStr}.csv`;
             link.click();
             URL.revokeObjectURL(link.href);
-            showToast(`已下載 ${drinks.length} 筆現有品項 (含 ID，依名稱排序)`, "success");
+            showToast(`已下載 ${items.length} 筆${prefix}品項 (含 ID，依名稱排序)`, "success");
         }
 
         // 處理 CSV 檔案匯入
@@ -918,8 +961,8 @@
                     csvImportData = { valid: [], invalid: [] };
 
                     rows.forEach((row, index) => {
-                        const rowNum = index + 2; // Excel 行號 (1-based + 標題列)
-                        const validation = validateDrinkRow(row, rowNum, hasIdColumn);
+                        const rowNum = index + 2;
+                        const validation = validateCsvRow(row, rowNum, hasIdColumn);
                         if (validation.valid) {
                             csvImportData.valid.push(validation.data);
                         } else {
@@ -950,8 +993,15 @@
             return maxId + 1;
         }
 
-        // 驗證單筆飲品資料 (支援 5 欄無 ID、6 欄有 ID)
-        function validateDrinkRow(row, rowNum, hasIdColumn) {
+        function getNextFoodId() {
+            const maxId = foods.reduce((max, d) => {
+                const id = parseInt(d.id);
+                return !isNaN(id) && id > max ? id : max;
+            }, 0);
+            return maxId + 1;
+        }
+
+        function validateCsvRow(row, rowNum, hasIdColumn) {
             let id = null;
             let name, price, category, emoji, color;
 
@@ -962,7 +1012,6 @@
                 [name, price, category, emoji, color] = row;
             }
 
-            // 檢查必填欄位
             if (!name || String(name).trim() === '') {
                 return { valid: false, error: `第 ${rowNum} 行：名稱不可為空` };
             }
@@ -973,51 +1022,50 @@
             }
 
             const cat = String(category || '').trim();
-            if (!['純茶', '拿鐵', '果茶'].includes(cat)) {
-                return { valid: false, error: `第 ${rowNum} 行：分類必須為「純茶」、「拿鐵」或「果茶」` };
+            const isDrink = currentMenuType === 'drink';
+            const validCats = isDrink ? ['純茶', '拿鐵', '果茶'] : ['飯', '麵', '粥'];
+            if (!validCats.includes(cat)) {
+                const catsStr = validCats.map(c => `「${c}」`).join('、');
+                return { valid: false, error: `第 ${rowNum} 行：分類必須為${catsStr}` };
             }
 
             const nameTrimmed = String(name).trim();
+            const target = isDrink ? drinks : foods;
 
-            // 如果有提供 ID，檢查是否為現有品項
-            let existingDrink = null;
+            let existingItem = null;
             if (id) {
                 const idNum = parseInt(id);
                 if (!isNaN(idNum)) {
-                    existingDrink = drinks.find(d => parseInt(d.id) === idNum);
+                    existingItem = target.find(d => parseInt(d.id) === idNum);
                 }
             }
 
-            // 如果有 ID 且找到現有品項 -> 更新模式
-            // 如果有 ID 但找不到 -> 視為新品項，但保留該 ID (若無衝突) 或重新產生
-            // 如果無 ID -> 新增模式，產生新 ID
             let finalId;
             let isUpdate = false;
 
-            if (existingDrink) {
-                finalId = existingDrink.id;
+            if (existingItem) {
+                finalId = existingItem.id;
                 isUpdate = true;
             } else if (id) {
                 const idNum = parseInt(id);
-                if (!isNaN(idNum) && !drinks.some(d => parseInt(d.id) === idNum)) {
-                    finalId = idNum; // 使用提供的 ID (無衝突)
+                const idFn = isDrink ? getNextDrinkId : getNextFoodId;
+                if (!isNaN(idNum) && !target.some(d => parseInt(d.id) === idNum)) {
+                    finalId = idNum;
                 } else {
-                    finalId = getNextDrinkId(); // ID 衝突或無效，產生新 ID
+                    finalId = idFn();
                 }
             } else {
-                finalId = getNextDrinkId(); // 無 ID，產生新 ID
+                finalId = isDrink ? getNextDrinkId() : getNextFoodId();
             }
 
-            // 檢查重複名稱 (排除自己如果是更新模式)
-            if (!isUpdate && drinks.some(d => d.name === nameTrimmed)) {
+            if (!isUpdate && target.some(d => d.name === nameTrimmed)) {
                 return { valid: false, error: `第 ${rowNum} 行：品項「${nameTrimmed}」已存在，將跳過` };
             }
-            if (isUpdate && drinks.some(d => d.name === nameTrimmed && d.id !== finalId)) {
+            if (isUpdate && target.some(d => d.name === nameTrimmed && d.id !== finalId)) {
                 return { valid: false, error: `第 ${rowNum} 行：品項「${nameTrimmed}」已被其他品項使用，將跳過` };
             }
 
-            // 取得預設樣式
-            const style = categoryStyles[cat] || { color: 'bg-gray-100', emoji: '🥤' };
+            const style = categoryStyles[cat] || { color: 'bg-gray-100', emoji: isDrink ? '🥤' : '🍽️' };
 
             return {
                 valid: true,
@@ -1074,7 +1122,7 @@
                     <td class="px-4 py-2 font-medium">${item.name}</td>
                     <td class="px-4 py-2">NT$ ${item.price}</td>
                     <td class="px-4 py-2">
-                        <span class="px-2 py-1 text-xs rounded-full ${item.category === '純茶' ? 'bg-green-100 text-green-700' : item.category === '拿鐵' ? 'bg-amber-100 text-amber-700' : 'bg-yellow-100 text-yellow-700'}">
+                        <span class="px-2 py-1 text-xs rounded-full ${item.category === '純茶' ? 'bg-green-100 text-green-700' : item.category === '拿鐵' ? 'bg-amber-100 text-amber-700' : item.category === '果茶' ? 'bg-yellow-100 text-yellow-700' : item.category === '飯' ? 'bg-amber-100 text-amber-700' : item.category === '麵' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-700'}">
                             ${item.category}
                         </span>
                     </td>
@@ -1118,33 +1166,33 @@
             csvImportData = { valid: [], invalid: [] };
         }
 
-        // 確認匯入
         function confirmCSVImport() {
             if (csvImportData.valid.length === 0) return;
 
+            const target = currentMenuType === 'drink' ? drinks : foods;
             let addedCount = 0;
             let updatedCount = 0;
             csvImportData.valid.forEach(item => {
-                const existingIndex = drinks.findIndex(d => parseInt(d.id) === parseInt(item.id));
+                const existingIndex = target.findIndex(d => parseInt(d.id) === parseInt(item.id));
                 if (existingIndex >= 0) {
-                    // 更新現有品項
-                    drinks[existingIndex] = { ...drinks[existingIndex], ...item };
+                    target[existingIndex] = { ...target[existingIndex], ...item };
                     updatedCount++;
                 } else {
-                    // 新增品項
-                    drinks.push(item);
+                    target.push(item);
                     addedCount++;
                 }
             });
 
-            renderMenu(drinks);
+            if (currentMenuType === 'drink') renderMenu(drinks);
+            else renderFoodMenu(foods);
             renderAdminView();
             closeCSVPreviewModal();
+            const label = currentMenuType === 'drink' ? '飲品' : '餐飲';
             const msg = addedCount > 0 && updatedCount > 0
-                ? `成功匯入：新增 ${addedCount} 筆、更新 ${updatedCount} 筆`
+                ? `成功匯入：新增 ${addedCount} 筆、更新 ${updatedCount} 筆${label}資料`
                 : addedCount > 0
-                    ? `成功匯入 ${addedCount} 筆飲品資料`
-                    : `成功更新 ${updatedCount} 筆飲品資料`;
+                    ? `成功匯入 ${addedCount} 筆${label}資料`
+                    : `成功更新 ${updatedCount} 筆${label}資料`;
             showToast(msg, "success");
         }
 

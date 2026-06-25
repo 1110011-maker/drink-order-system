@@ -294,13 +294,17 @@
         </main>
     </div>
 
-    <!-- 餐飲點餐頁面（待設計） -->
+    <!-- 餐飲點餐畫面 -->
     <div id="view-food" class="hidden fade-in">
-        <main class="max-w-7xl mx-auto px-4 py-8 pb-24 lg:pb-8">
-            <div class="text-center py-20">
-                <div class="text-6xl mb-6 empty-state">🍽️</div>
-                <h2 class="text-2xl font-bold text-gray-700 mb-2">餐飲點餐</h2>
-                <p class="text-gray-400">此頁面正在設計中，敬請期待！</p>
+        <main class="max-w-7xl mx-auto px-4 py-8 pb-24 lg:pb-8 flex flex-col lg:flex-row gap-8">
+            <div class="flex-1">
+                <div class="flex space-x-4 mb-8 overflow-x-auto pb-2">
+                    <button onclick="filterFoodMenu('all')" class="food-category-btn glass-btn-active text-white shadow-sm">全部</button>
+                    <button onclick="filterFoodMenu('飯')" class="food-category-btn glass-btn text-gray-600 shadow-sm transition">🍚 飯</button>
+                    <button onclick="filterFoodMenu('麵')" class="food-category-btn glass-btn text-gray-600 shadow-sm transition">🍜 麵</button>
+                    <button onclick="filterFoodMenu('粥')" class="food-category-btn glass-btn text-gray-600 shadow-sm transition">🥣 粥</button>
+                </div>
+                <div id="food-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"></div>
             </div>
         </main>
     </div>
@@ -337,13 +341,18 @@
                 <h3 id="modal-title" class="text-2xl font-bold">飲料名稱</h3>
             </div>
             <div class="p-6">
-                <div class="mb-6">
-                    <label class="block text-sm font-bold text-gray-700 mb-3 uppercase tracking-wider">甜度</label>
-                    <div id="sugar-options" class="grid grid-cols-3 gap-2"></div>
+                <div id="sugar-ice-section">
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold text-gray-700 mb-3 uppercase tracking-wider">甜度</label>
+                        <div id="sugar-options" class="grid grid-cols-3 gap-2"></div>
+                    </div>
+                    <div class="mb-8">
+                        <label class="block text-sm font-bold text-gray-700 mb-3 uppercase tracking-wider">冰塊</label>
+                        <div id="ice-options" class="grid grid-cols-3 gap-2"></div>
+                    </div>
                 </div>
-                <div class="mb-8">
-                    <label class="block text-sm font-bold text-gray-700 mb-3 uppercase tracking-wider">冰塊</label>
-                    <div id="ice-options" class="grid grid-cols-3 gap-2"></div>
+                <div id="food-custom-section" class="hidden mb-8 text-center py-6 glass rounded-xl">
+                    <p class="text-gray-400 text-sm">🥢 客製化選項待設計</p>
                 </div>
                 <div class="flex space-x-4">
                     <button onclick="closeModal()" class="flex-1 px-6 py-3 glass-btn rounded-xl font-bold text-gray-600 shadow-sm">取消</button>
@@ -423,6 +432,20 @@
             { id: 7, name: "爆檸翠玉青", price: 55, category: "果茶", color: "bg-yellow-100", emoji: "🍋" }
         ];
 
+        let foods = [
+            { id: 101, name: "滷肉飯", price: 50, category: "飯", color: "bg-amber-100", emoji: "🍚" },
+            { id: 102, name: "雞肉飯", price: 55, category: "飯", color: "bg-yellow-100", emoji: "🍗" },
+            { id: 103, name: "排骨飯", price: 75, category: "飯", color: "bg-orange-100", emoji: "🥩" },
+            { id: 104, name: "控肉飯", price: 70, category: "飯", color: "bg-red-100", emoji: "🍖" },
+            { id: 201, name: "牛肉麵", price: 120, category: "麵", color: "bg-orange-100", emoji: "🍜" },
+            { id: 202, name: "炸醬麵", price: 70, category: "麵", color: "bg-stone-100", emoji: "🍝" },
+            { id: 203, name: "陽春麵", price: 45, category: "麵", color: "bg-gray-100", emoji: "🍜" },
+            { id: 204, name: "麻醬麵", price: 55, category: "麵", color: "bg-amber-100", emoji: "🍝" },
+            { id: 301, name: "皮蛋瘦肉粥", price: 65, category: "粥", color: "bg-gray-100", emoji: "🥣" },
+            { id: 302, name: "海鮮粥", price: 90, category: "粥", color: "bg-red-100", emoji: "🦐" },
+            { id: 303, name: "地瓜粥", price: 35, category: "粥", color: "bg-yellow-100", emoji: "🍠" }
+        ];
+
         let cart = [];
         let orders = [];
         let currentSelectingDrink = null;
@@ -436,7 +459,10 @@
         const categoryStyles = {
             '純茶': { color: 'bg-green-100', emoji: '🍵' },
             '拿鐵': { color: 'bg-amber-100', emoji: '🧋' },
-            '果茶': { color: 'bg-yellow-100', emoji: '🍋' }
+            '果茶': { color: 'bg-yellow-100', emoji: '🍋' },
+            '飯': { color: 'bg-amber-100', emoji: '🍚' },
+            '麵': { color: 'bg-orange-100', emoji: '🍜' },
+            '粥': { color: 'bg-gray-100', emoji: '🥣' }
         };
 
         // CSV 匯入狀態
@@ -444,6 +470,7 @@
 
         function init() {
             renderMenu(drinks);
+            renderFoodMenu(foods);
             renderAdminView();
             renderOptionButtons();
         }
@@ -465,6 +492,7 @@
             views.forEach((v, i) => v.classList.toggle('hidden', i !== activeIdx));
             btns.forEach((b, i) => b.className = i === activeIdx ? activeClass : inactiveClass);
             if (view === 'admin') renderAdminView();
+            if (view === 'food') renderFoodMenu(foods);
         }
 
         // 前台：渲染菜單
@@ -507,6 +535,47 @@
             });
         }
 
+        // 餐飲：渲染菜單
+        function renderFoodMenu(items) {
+            const grid = document.getElementById('food-grid');
+            grid.innerHTML = items.map(item => `
+                <div class="drink-card glass-card rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="w-14 h-14 ${item.color || 'bg-teal-100'} rounded-2xl flex items-center justify-center text-3xl shadow-sm">
+                            ${item.emoji || '🍽️'}
+                        </div>
+                        <span class="glass text-teal-700 text-xs font-bold px-2 py-1 rounded-md">${item.category}</span>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800 mb-1">${item.name}</h3>
+                        <p class="text-gray-400 text-sm mb-4">現點現做，美味上桌。</p>
+                    </div>
+                    <div class="flex items-center justify-between mt-2">
+                        <span class="text-xl font-bold text-teal-600">NT$ ${item.price}</span>
+                        <button onclick="openFoodModal(${item.id})" class="glass-btn hover:glass-btn-active hover:text-white text-gray-600 w-10 h-10 rounded-full flex items-center justify-center transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterFoodMenu(category) {
+            const filtered = category === 'all' ? foods : foods.filter(d => d.category === category);
+            renderFoodMenu(filtered);
+            const btns = document.querySelectorAll('.food-category-btn');
+            btns.forEach(btn => {
+                const text = btn.innerText.replace(/[🍚🍜🥣]/g, '').trim();
+                if (text === category || (category === 'all' && text === '全部')) {
+                    btn.className = "food-category-btn glass-btn-active text-white shadow-sm";
+                } else {
+                    btn.className = "food-category-btn glass-btn text-gray-600 shadow-sm transition";
+                }
+            });
+        }
+
         // 前台：客製化 Modal
         function renderOptionButtons() {
             document.getElementById('sugar-options').innerHTML = sugarLevels.map(s => `
@@ -522,8 +591,19 @@
             document.getElementById('modal-title').innerText = currentSelectingDrink.name;
             document.getElementById('modal-price').innerText = currentSelectingDrink.price;
             document.getElementById('order-modal').classList.replace('hidden', 'flex');
+            document.getElementById('sugar-ice-section').classList.remove('hidden');
+            document.getElementById('food-custom-section').classList.add('hidden');
             setSugar("半糖");
             setIce("少冰");
+        }
+
+        function openFoodModal(id) {
+            currentSelectingDrink = foods.find(d => d.id === id);
+            document.getElementById('modal-title').innerText = currentSelectingDrink.name;
+            document.getElementById('modal-price').innerText = currentSelectingDrink.price;
+            document.getElementById('order-modal').classList.replace('hidden', 'flex');
+            document.getElementById('sugar-ice-section').classList.add('hidden');
+            document.getElementById('food-custom-section').classList.remove('hidden');
         }
 
         function closeModal() {
@@ -552,7 +632,8 @@
 
         // 購物車邏輯
         function addToCartConfirm() {
-            cart.push({ ...currentSelectingDrink, sugar: selectedSugar, ice: selectedIce, cartId: Date.now() });
+            const isFood = currentSelectingDrink.id >= 100;
+            cart.push({ ...currentSelectingDrink, sugar: isFood ? "—" : selectedSugar, ice: isFood ? "—" : selectedIce, cartId: Date.now() });
             updateCartUI();
             closeModal();
             showToast(`已加入：${currentSelectingDrink.name}`, "success");

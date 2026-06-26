@@ -3,3 +3,4 @@
 service-account-key.json
 get_token.py
 enable-auth.js
+firebase-setup.js

@@ -413,7 +413,10 @@ window.switchView = function(view) {
   views.forEach((v, i) => document.getElementById(v).classList.toggle('hidden', i !== activeIdx));
   btns.forEach((b, i) => {
     const el = document.getElementById(b);
-    if (el) el.className = i === activeIdx ? activeClass : inactiveClass;
+    if (el) {
+      el.className = i === activeIdx ? activeClass : inactiveClass;
+      if (isCustomerMode && b === 'view-btn-admin') el.classList.add('hidden');
+    }
   });
   if (view === 'admin') renderAdminView();
   if (view === 'food') renderFoodMenu(getFoods());

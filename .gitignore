@@ -1,3 +1,5 @@
-# OS files
-Thumbs.db
-.DS_Store
+.playwright-mcp/
+*.docx
+service-account-key.json
+get_token.py
+enable-auth.js

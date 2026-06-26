@@ -1,0 +1,10 @@
+{
+  "name": "cafe-ordering-system",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "node firebase-setup.js",
+    "start": "npx serve ."
+  }
+}
